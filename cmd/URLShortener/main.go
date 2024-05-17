@@ -2,6 +2,8 @@ package main
 
 import (
 	"URLShortener/internal/config"
+	"URLShortener/internal/lib/logger/sl"
+	"URLShortener/internal/storage/sqlite"
 	"log/slog"
 	"os"
 )
@@ -15,7 +17,12 @@ const (
 func main() {
 	config := config.MustLoad()
 	logger := setupLogger(config.Env)
-	logger.Info("start urlshortener", slog.String("env", config.Env))
+	storage, err := sqlite.New(config.StoragePath)
+	if err != nil {
+		slog.Error("failed to init storage", sl.Err(err))
+		return
+	}
+	_, _ = logger, storage
 
 }
 
