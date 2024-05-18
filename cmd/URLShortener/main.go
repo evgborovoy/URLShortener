@@ -22,7 +22,13 @@ func main() {
 		slog.Error("failed to init storage", sl.Err(err))
 		return
 	}
-	_, _ = logger, storage
+	logger.Info("storage init")
+	_ = storage
+	err = storage.DeleteURL("go")
+	if err != nil {
+		slog.Error("failed to init storage", sl.Err(err))
+		return
+	}
 
 }
 
