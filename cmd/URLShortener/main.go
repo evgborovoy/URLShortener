@@ -2,10 +2,12 @@ package main
 
 import (
 	"URLShortener/internal/config"
+	"URLShortener/internal/http-server/handlers/redirect"
 	"URLShortener/internal/http-server/handlers/url/save"
 	"URLShortener/internal/lib/logger/sl"
 	"URLShortener/internal/storage/sqlite"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/go-chi/chi/v5"
@@ -39,8 +41,28 @@ func main() {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
-	router.Post("/url", save.New(logger, storage))
+	router.Route("/url", func(r chi.Router) {
+		r.Use(middleware.BasicAuth("url-shortener", map[string]string{
+			config.HttpServer.User: config.HttpServer.Password,
+		}))
+		r.Post("/", save.New(logger, storage))
+	})
 
+	router.Get("/{alias}", redirect.New(logger, storage))
+
+	slog.Info("starting server", slog.String("address", config.Adress))
+
+	svr := &http.Server{
+		Addr:         config.Adress,
+		Handler:      router,
+		ReadTimeout:  config.HttpServer.Timeout,
+		WriteTimeout: config.HttpServer.Timeout,
+		IdleTimeout:  config.HttpServer.IdleTimeout,
+	}
+	if err := svr.ListenAndServe(); err != nil {
+		slog.Error("failed to start server")
+	}
+	slog.Error("server stopped")
 }
 
 func setupLogger(env string) *slog.Logger {
