@@ -2,10 +2,14 @@ package main
 
 import (
 	"URLShortener/internal/config"
+	"URLShortener/internal/http-server/handlers/url/save"
 	"URLShortener/internal/lib/logger/sl"
 	"URLShortener/internal/storage/sqlite"
 	"log/slog"
 	"os"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 const (
@@ -29,6 +33,13 @@ func main() {
 		slog.Error("failed to init storage", sl.Err(err))
 		return
 	}
+	router := chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
+	router.Post("/url", save.New(logger, storage))
 
 }
 
